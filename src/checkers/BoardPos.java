@@ -5,23 +5,48 @@
  */
 package checkers;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  *
  * @author Mateusz
  */
 public class BoardPos {
-    private final int x, y, distFromActive;
-    
+    private int x, y, distFromActive;
+    public List<BoardPos> route;
+
+    public BoardPos() {
+        x = 0;
+        y = 0;
+        distFromActive = 0;
+    }
+
     public BoardPos(int _x, int _y) {
         x = _x;
         y = _y;
         distFromActive = 0;
     }
-    
+
+    public BoardPos(BoardPos old) {
+        x = old.x;
+        y = old.y;
+        distFromActive = old.distFromActive;
+        if (old.route != null)
+            route = new ArrayList<>(old.route);
+    }
+
     public BoardPos(BoardPos old, int _distFromActive) {
         x = old.x;
         y = old.y;
         distFromActive = _distFromActive;
+    }
+
+    public void addToRoute(BoardPos step) {
+        if (route == null)
+            route = new ArrayList<>();
+
+        route.add(step);
     }
     
     public int getX() {

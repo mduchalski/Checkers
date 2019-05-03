@@ -15,6 +15,8 @@ import java.util.Stack;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
+import static java.lang.Math.abs;
+
 /**
  *
  * @author Mateusz
@@ -44,7 +46,7 @@ public class Board {
             for (int j = 0; j < sideCount; j++)
                 pieces[i][j] = new Piece();
         
-        highlights = new ArrayList<BoardPos>();
+        highlights = new ArrayList<>();
     }
     
     public boolean someActivePos() {
@@ -112,11 +114,10 @@ public class Board {
     
     public void highlightStrikes(BoardPos from) {
         Queue<BoardPos> search = new LinkedList<>();
-        Stack<BoardPos> result = new Stack<>();
+        List<BoardPos> result = new ArrayList<>();
         search.add(from);
         
         final int[] offsets = {-2, 2};
-        int depth = 1;
         while (!search.isEmpty()) {
             for (int offX : offsets)
                 for (int offY : offsets) {
@@ -134,14 +135,35 @@ public class Board {
                         search.add(new BoardPos(to, search.peek().distFromActive() + 1));
                 }
             
-            result.add(search.poll());
+            result.add(new BoardPos(search.poll()));
         }
-        
-        if (result.size() > 1) {
-            int maxDepth = result.peek().distFromActive();
-            while (!result.isEmpty() && result.peek().distFromActive() == maxDepth)
-                highlights.add(result.pop());
+
+        int maxDepth = result.get(result.size() - 1).distFromActive();
+        for (BoardPos end : result) {
+            if (end.distFromActive() == maxDepth) {
+                int i = maxDepth - 1;
+                BoardPos nextStep = new BoardPos(end);
+                for (int j = result.size() - 1; j > 0; j--)
+                    if (result.get(j).distFromActive() == i &&
+                            abs(result.get(j).getX() - nextStep.getX()) == 2 &&
+                            abs(result.get(j).getY() - nextStep.getY()) == 2) {
+                        end.addToRoute(result.get(j));
+                        end.addToRoute(new BoardPos((result.get(j).getX() + nextStep.getX()) / 2,
+                                (result.get(j).getY() + nextStep.getY()) / 2));
+
+                        if (i == 1) {
+                            end.addToRoute(new BoardPos((result.get(j).getX() + from.getX()) / 2,
+                                    (result.get(j).getY() + from.getY()) / 2));
+                            end.addToRoute(from);
+                        }
+
+                        i--;
+                        nextStep = new BoardPos(result.get(j));
+                    }
+                highlights.add(new BoardPos(end));
+            }
         }
+        return;
     }
     
     public void draw(GraphicsContext gc) {
@@ -156,10 +178,16 @@ public class Board {
         gc.strokeRect(startX, startY, sideLength, sideLength);
         
         // Draw highlights
-        gc.setFill(Color.LIGHTYELLOW);
-        for (BoardPos pos : highlights)
-            gc.fillRect(startX + pos.getX() * unitLength, 
+        for (BoardPos pos : highlights) {
+            gc.setFill(Color.ORANGE);
+            gc.fillRect(startX + pos.getX() * unitLength,
                     startY + pos.getY() * unitLength, unitLength, unitLength);
+            gc.setFill(Color.LIGHTYELLOW);
+            if (pos.route != null)
+                for (BoardPos step : pos.route)
+                    gc.fillRect(startX + step.getX() * unitLength,
+                            startY + step.getY() * unitLength, unitLength, unitLength);
+        }
         
         // Draw pieces
         for (int i = 0; i < sideCount; i++)
