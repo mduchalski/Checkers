@@ -58,5 +58,4 @@ public class Checkers extends Application {
     public static void main(String[] args) {
         launch(args);
     }
-    
 }

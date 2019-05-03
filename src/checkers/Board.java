@@ -44,7 +44,6 @@ public class Board {
             for (int j = 0; j < sideCount; j++)
                 pieces[i][j] = new Piece();
         
-        
         highlights = new ArrayList<BoardPos>();
     }
     
@@ -65,13 +64,15 @@ public class Board {
     }
     
     public void init() {
-        
         /*
         for (int j = 0; j < startCount; j++)
             for (int i = (j % 2 == 0) ? 1 : 0; i < sideCount; i += 2) {
                 pieces[i][j].setBlack();
                 pieces[sideCount - 1 - i][sideCount - 1 - j].setWhite();
             }
+        
+        pieces[0][3].setBlack();
+        pieces[1][2].setEmpty();
         */
         
         pieces[2][2].setBlack();
@@ -79,7 +80,7 @@ public class Board {
         pieces[5][5].setWhite();
         pieces[5][3].setWhite();
         pieces[5][7].setWhite();
-        pieces[5][1].setWhite();
+        //pieces[5][1].setWhite();
     }
     
     private BoardPos decodeMouse(double mouseX, double mouseY) {
@@ -96,12 +97,12 @@ public class Board {
         if (activePos == null) return;
         
         highlightStrikes(activePos);
-        if (highlights.size() == 0) {
-            if (pieces[activePos.getX() + 1][activePos.getY() + 1].isEmpty())
-                highlights.add(new BoardPos(activePos.getX() + 1, activePos.getY() + 1));
-            if (pieces[activePos.getX() - 1][activePos.getY() + 1].isEmpty())
-                highlights.add(new BoardPos(activePos.getX() - 1, activePos.getY() + 1));
-        }  
+        if (highlights.isEmpty() && !pieceOnPos(activePos).isEmpty()) {
+            if (pieces[activePos.getX() + 1][activePos.getY() + (pieceOnPos(activePos).color() ? 1 : -1)].isEmpty())
+                highlights.add(new BoardPos(activePos.getX() + 1, activePos.getY() + (pieceOnPos(activePos).color() ? 1 : -1)));
+            if (pieces[activePos.getX() - 1][activePos.getY() + (pieceOnPos(activePos).color() ? 1 : -1)].isEmpty())
+                highlights.add(new BoardPos(activePos.getX() - 1, activePos.getY() + (pieceOnPos(activePos).color() ? 1 : -1)));
+        }
     }
     
     private Piece pieceOnPos(BoardPos pos) {
@@ -136,7 +137,7 @@ public class Board {
             result.add(search.poll());
         }
         
-        if (!result.isEmpty()) {
+        if (result.size() > 1) {
             int maxDepth = result.peek().distFromActive();
             while (!result.isEmpty() && result.peek().distFromActive() == maxDepth)
                 highlights.add(result.pop());

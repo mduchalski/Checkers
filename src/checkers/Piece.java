@@ -22,7 +22,7 @@ public class Piece {
         crown = false;
     }
 
-    Piece(Piece piece) {
+    public Piece(Piece piece) {
         empty = piece.empty;
         color = piece.color;
         crown = piece.crown;
@@ -70,5 +70,13 @@ public class Piece {
 
     void setNotEmpty() {
         empty = false;
+    }
+
+    boolean isBlack() {
+        return !empty && color;
+    }
+    
+    boolean isWhite() {
+        return !empty && !color;
     }
 }
