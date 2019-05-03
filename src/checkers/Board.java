@@ -7,10 +7,13 @@ package checkers;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
+import java.util.Stack;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
-import javafx.util.Pair;
 
 /**
  *
@@ -54,19 +57,29 @@ public class Board {
         
         
         
-        pieces[newPos.getX()][newPos.getY()] 
-                = new Piece(pieces[activePos.getX()][activePos.getY()]);
-        pieces[activePos.getX()][activePos.getY()].setEmpty();
+        //pieces[newPos.getX()][newPos.getY()] 
+        //        = new Piece(pieces[activePos.getX()][activePos.getY()]);
+        //pieces[activePos.getX()][activePos.getY()].setEmpty();
         highlights.clear();
         activePos = null;
     }
     
     public void init() {
+        
+        /*
         for (int j = 0; j < startCount; j++)
             for (int i = (j % 2 == 0) ? 1 : 0; i < sideCount; i += 2) {
                 pieces[i][j].setBlack();
                 pieces[sideCount - 1 - i][sideCount - 1 - j].setWhite();
-            }   
+            }
+        */
+        
+        pieces[2][2].setBlack();
+        pieces[3][3].setWhite();
+        pieces[5][5].setWhite();
+        pieces[5][3].setWhite();
+        pieces[5][7].setWhite();
+        pieces[5][1].setWhite();
     }
     
     private BoardPos decodeMouse(double mouseX, double mouseY) {
@@ -77,33 +90,57 @@ public class Board {
         else return null;
     }
     
+    
     public void highlightMoves(double mouseX, double mouseY) {
         activePos = decodeMouse(mouseX, mouseY);
         if (activePos == null) return;
         
-        highlights.add(decodeMouse(mouseX, mouseY));
-        if (strikeLength(activePos, new BoardPos(-1, -1)) == -1) {
+        highlightStrikes(activePos);
+        if (highlights.size() == 0) {
             if (pieces[activePos.getX() + 1][activePos.getY() + 1].isEmpty())
                 highlights.add(new BoardPos(activePos.getX() + 1, activePos.getY() + 1));
             if (pieces[activePos.getX() - 1][activePos.getY() + 1].isEmpty())
                 highlights.add(new BoardPos(activePos.getX() - 1, activePos.getY() + 1));
-        }
-            
+        }  
+    }
+    
+    private Piece pieceOnPos(BoardPos pos) {
+        return pieces[pos.getX()][pos.getY()];
     }
     
     
-    public int strikeLength(BoardPos from, BoardPos last) { // 1 - without 
-        int length = -1;
-        for (int i = 0; i < 4; i++) {
-            BoardPos to = new BoardPos(from.getX() + ((i > 1) ? -2 : 2), 
-                    from.getY() + ((i % 2 == 0) ? -2 : 2));
+    public void highlightStrikes(BoardPos from) {
+        Queue<BoardPos> search = new LinkedList<>();
+        Stack<BoardPos> result = new Stack<>();
+        search.add(from);
+        
+        final int[] offsets = {-2, 2};
+        int depth = 1;
+        while (!search.isEmpty()) {
+            for (int offX : offsets)
+                for (int offY : offsets) {
+                    BoardPos to = new BoardPos(search.peek().getX() + offX, 
+                            search.peek().getY() + offY);
+                    
+                    if ( !result.contains(to) && to.inBounds(sideCount) &&
+                            pieceOnPos(to).isEmpty() && 
+                            !pieceOnPos(new BoardPos((to.getX()+search.peek().getX()) / 2, 
+                                (to.getY()+search.peek().getY()) / 2)).isEmpty() &&
+                        pieceOnPos(activePos).color() != 
+                        pieceOnPos(new BoardPos((to.getX()+search.peek().getX()) / 2, 
+                            (to.getY()+search.peek().getY()) / 2)).color() &&
+                            !search.contains(to) ) 
+                        search.add(new BoardPos(to, search.peek().distFromActive() + 1));
+                }
             
-            if( !from.equals(last) && from.inBounds(sideCount) && !pieces[to.getX()][to.getX()].isEmpty() &&
-                    pieces[from.getX()][from.getY()].color() != pieces[(to.getX()+from.getX()) / 2][(to.getY()+from.getY()) / 2].color() )
-                if (1 + strikeLength(to, from) > length)
-                    length = 1 + strikeLength(to, from);
+            result.add(search.poll());
         }
-        return length;
+        
+        if (!result.isEmpty()) {
+            int maxDepth = result.peek().distFromActive();
+            while (!result.isEmpty() && result.peek().distFromActive() == maxDepth)
+                highlights.add(result.pop());
+        }
     }
     
     public void draw(GraphicsContext gc) {
