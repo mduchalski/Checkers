@@ -64,7 +64,15 @@ public class BoardPos {
     public int distFromActive() {
         return distFromActive;
     }
-    
+
+    public BoardPos add(BoardPos other) {
+        return new BoardPos(x + other.x, y + other.y);
+    }
+
+    public BoardPos avg(BoardPos other) {
+        return new BoardPos((x + other.x) / 2, (y + other.y) / 2);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == this)

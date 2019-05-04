@@ -17,7 +17,8 @@ import javafx.stage.Stage;
  * @author Mateusz
  */
 public class Checkers extends Application {
-    
+
+
     @Override
     public void start(Stage primaryStage) {
         primaryStage.setTitle("Checkers");
@@ -30,8 +31,7 @@ public class Checkers extends Application {
         root.getChildren().add(canvas);
         
         GraphicsContext gc = canvas.getGraphicsContext2D();
-        Board board = new Board(50.0, 50.0, 400.0, 0.1, 8, 3);
-        board.init();
+        BoardLogic board = new BoardLogic(50.0, 50.0, 400.0, 0.1, 8, 3);
         board.draw(gc);
         
         primaryScene.setOnMouseClicked(
