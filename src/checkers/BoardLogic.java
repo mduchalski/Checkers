@@ -12,6 +12,7 @@ import java.util.Queue;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
+import static java.lang.Math.PI;
 import static java.lang.Math.abs;
 
 /**
@@ -72,7 +73,7 @@ public class BoardLogic {
         
         highlightStrikes(activePos);
 
-        if (highlights.size() == 1 && !board.get(activePos).isEmpty()) {
+        if (highlights.isEmpty() && !board.get(activePos).isEmpty()) {
             final int[] shifts = {-1, 1};
             for (int shift : shifts) {
                 BoardPos move = activePos.add(new BoardPos(shift,
@@ -81,6 +82,9 @@ public class BoardLogic {
                 if (board.get(move) != null && board.get(move).isEmpty())
                     highlights.add(move);
         } }
+
+        for (BoardPos pos : highlights)
+            pos.addToRoute(activePos);
     }
     
     public void highlightStrikes(BoardPos from) {
@@ -129,7 +133,8 @@ public class BoardLogic {
                         i--;
                         nextStep = new BoardPos(result.get(j));
                     }
-                highlights.add(new BoardPos(end));
+                if (!end.equals(from))
+                    highlights.add(new BoardPos(end));
             }
         }
     }

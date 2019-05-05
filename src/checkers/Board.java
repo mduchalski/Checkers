@@ -10,19 +10,18 @@ public class Board {
             for (int j = 0; j < pieces[i].length; j++)
                 pieces[i][j] = new Piece();
 
-        /*
         for (int j = 0; j < startCount; j++)
             for (int i = (j % 2 == 0) ? 1 : 0; i < sideCount; i += 2) {
                 pieces[i][j].setBlack();
                 pieces[sideCount - 1 - i][sideCount - 1 - j].setWhite();
             }
-        */
 
+        /*
         pieces[2][2].setBlack();
         pieces[3][3].setWhite();
         pieces[5][5].setWhite();
         pieces[5][3].setWhite();
-        pieces[5][7].setWhite();
+        pieces[5][7].setWhite();*/
     }
 
     public Piece get(int x, int y) {
