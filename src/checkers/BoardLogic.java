@@ -72,14 +72,31 @@ public class BoardLogic {
         else return null;
     }
 
+    private BoardPos longestAvailableStrike() {
+        BoardPos lastLongest = null;
+        for (int i = 0; i < board.side(); i++)
+            for (int j = 0; j < board.side(); j++)
+                if (!board.get(i, j).isEmpty() &&
+                        board.get(i, j).color() != lastColor) {
+                    List<BoardPos> _legalPos = highlightStrikes(new BoardPos(i, j));
+                    if (!_legalPos.isEmpty() && (lastLongest == null ||
+                            _legalPos.get(0).routeLen() > lastLongest.routeLen()))
+                        lastLongest = _legalPos.get(0).getRouteOrigin();
+                }
+        return lastLongest;
+    }
+
     public void highlightMoves(double mouseX, double mouseY) {
-        activePos = decodeMouse(mouseX, mouseY);
-        if (activePos == null || board.get(activePos).color() == lastColor) {
+        activePos = longestAvailableStrike();
+        if (activePos == null)
+            activePos = decodeMouse(mouseX, mouseY);
+        if (activePos == null || board.get(activePos).isEmpty() ||
+                board.get(activePos).color() == lastColor) {
             activePos = null;
             return;
         }
-        
-        highlightStrikes(activePos);
+
+        legalPos = highlightStrikes(activePos);
 
         if (legalPos.isEmpty() && !board.get(activePos).isEmpty()) {
             final int[] shifts = {-1, 1};
@@ -95,11 +112,11 @@ public class BoardLogic {
             pos.addToRoute(new BoardPos(activePos));
     }
     
-    public void highlightStrikes(BoardPos from) {
+    public List<BoardPos> highlightStrikes(BoardPos from) {
         Queue<BoardPos> search = new LinkedList<>();
-        List<BoardPos> result = new ArrayList<>();
+        List<BoardPos> result = new ArrayList<>(), retVal = new ArrayList<>();
         search.add(from);
-        
+
         final int[] offsets = {-2, 2};
         while (!search.isEmpty()) {
             for (int offX : offsets)
@@ -110,12 +127,12 @@ public class BoardLogic {
                     if ( !result.contains(to) && to.inBounds(board.side()) &&
                             board.get(to).isEmpty() &&
                             !board.get(to.avg(search.peek())).isEmpty() &&
-                            board.get(activePos).color() !=
+                            board.get(from).color() !=
                                     board.get(to.avg(search.peek())).color() &&
                             !search.contains(to) )
                         search.add(new BoardPos(to, search.peek().distFromActive() + 1));
                 }
-            
+
             result.add(new BoardPos(search.poll()));
         }
 
@@ -128,23 +145,19 @@ public class BoardLogic {
                     if (result.get(j).distFromActive() == i &&
                             abs(result.get(j).getX() - nextStep.getX()) == 2 &&
                             abs(result.get(j).getY() - nextStep.getY()) == 2) {
-                        end.addToRoute(new BoardPos(result.get(j)));
                         end.addToRoute(new BoardPos((result.get(j).getX() + nextStep.getX()) / 2,
                                 (result.get(j).getY() + nextStep.getY()) / 2));
-
-                        if (i == 1) {
-                            end.addToRoute(new BoardPos((result.get(j).getX() + from.getX()) / 2,
-                                    (result.get(j).getY() + from.getY()) / 2));
-                            end.addToRoute(new BoardPos(from));
-                        }
+                        end.addToRoute(new BoardPos(result.get(j)));
 
                         i--;
                         nextStep = new BoardPos(result.get(j));
                     }
                 if (!end.equals(from))
-                    legalPos.add(new BoardPos(end));
+                    retVal.add(new BoardPos(end));
             }
         }
+
+        return retVal;
     }
     
     public void draw(GraphicsContext gc) {

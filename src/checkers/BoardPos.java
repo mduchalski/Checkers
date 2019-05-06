@@ -49,10 +49,20 @@ public class BoardPos {
         route.add(step);
     }
 
+    public int routeLen() {
+        if (route == null)
+            return 0;
+        else return route.size();
+    }
+
     public List<BoardPos> getRoute() {
         return route;
     }
-    
+
+    public BoardPos getRouteOrigin() {
+        return route.get(route.size() - 1);
+    }
+
     public int getX() {
         return x;
     }
