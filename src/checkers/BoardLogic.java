@@ -12,7 +12,6 @@ import java.util.Queue;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
-import static java.lang.Math.PI;
 import static java.lang.Math.abs;
 
 /**
@@ -26,8 +25,9 @@ public class BoardLogic {
     //private Piece[][] pieces;
     private Board board;
 
-    private List<BoardPos> highlights;
+    private List<BoardPos> legalPos;
     BoardPos activePos;
+    boolean lastColor;
     
     public BoardLogic(double _startX, double _startY, double _sideLength,
                       double _pieceMargin, int sideCount, int startCount) {
@@ -40,7 +40,10 @@ public class BoardLogic {
 
         board = new Board(sideCount, startCount);
         
-        highlights = new ArrayList<>();
+        legalPos = new ArrayList<>();
+
+        activePos = null;
+        lastColor = true;
     }
     
     public boolean someActivePos() {
@@ -50,12 +53,14 @@ public class BoardLogic {
     public void attemptMove(double mouseX, double mouseY) {
         BoardPos newPos = decodeMouse(mouseX, mouseY);
         
-        
-        
-        //pieces[newPos.getX()][newPos.getY()] 
-        //        = new Piece(pieces[activePos.getX()][activePos.getY()]);
-        //pieces[activePos.getX()][activePos.getY()].setEmpty();
-        highlights.clear();
+        if (legalPos.contains(newPos)) {
+            lastColor = board.get(activePos).color();
+            board.set(newPos, board.get(activePos));
+            for (BoardPos step : legalPos.get(legalPos.indexOf(newPos)).getRoute())
+                board.get(step).setEmpty();
+        }
+
+        legalPos.clear();
         activePos = null;
     }
     
@@ -69,22 +74,25 @@ public class BoardLogic {
 
     public void highlightMoves(double mouseX, double mouseY) {
         activePos = decodeMouse(mouseX, mouseY);
-        if (activePos == null) return;
+        if (activePos == null || board.get(activePos).color() == lastColor) {
+            activePos = null;
+            return;
+        }
         
         highlightStrikes(activePos);
 
-        if (highlights.isEmpty() && !board.get(activePos).isEmpty()) {
+        if (legalPos.isEmpty() && !board.get(activePos).isEmpty()) {
             final int[] shifts = {-1, 1};
             for (int shift : shifts) {
                 BoardPos move = activePos.add(new BoardPos(shift,
                         board.get(activePos).color() ? 1 : -1));
 
                 if (board.get(move) != null && board.get(move).isEmpty())
-                    highlights.add(move);
+                    legalPos.add(new BoardPos(move));
         } }
 
-        for (BoardPos pos : highlights)
-            pos.addToRoute(activePos);
+        for (BoardPos pos : legalPos)
+            pos.addToRoute(new BoardPos(activePos));
     }
     
     public void highlightStrikes(BoardPos from) {
@@ -116,30 +124,32 @@ public class BoardLogic {
             if (end.distFromActive() == maxDepth) {
                 int i = maxDepth - 1;
                 BoardPos nextStep = new BoardPos(end);
-                for (int j = result.size() - 1; j > 0; j--)
+                for (int j = result.size() - 1; j >= 0; j--)
                     if (result.get(j).distFromActive() == i &&
                             abs(result.get(j).getX() - nextStep.getX()) == 2 &&
                             abs(result.get(j).getY() - nextStep.getY()) == 2) {
-                        end.addToRoute(result.get(j));
+                        end.addToRoute(new BoardPos(result.get(j)));
                         end.addToRoute(new BoardPos((result.get(j).getX() + nextStep.getX()) / 2,
                                 (result.get(j).getY() + nextStep.getY()) / 2));
 
                         if (i == 1) {
                             end.addToRoute(new BoardPos((result.get(j).getX() + from.getX()) / 2,
                                     (result.get(j).getY() + from.getY()) / 2));
-                            end.addToRoute(from);
+                            end.addToRoute(new BoardPos(from));
                         }
 
                         i--;
                         nextStep = new BoardPos(result.get(j));
                     }
                 if (!end.equals(from))
-                    highlights.add(new BoardPos(end));
+                    legalPos.add(new BoardPos(end));
             }
         }
     }
     
     public void draw(GraphicsContext gc) {
+        gc.clearRect(startX, startY, sideLength, sideLength);
+
         // Draw the base grid
         gc.setFill(Color.LIGHTGREY);
         for (int i = 0; i < board.side(); i++)
@@ -150,8 +160,8 @@ public class BoardLogic {
         gc.setStroke(Color.BLACK);
         gc.strokeRect(startX, startY, sideLength, sideLength);
         
-        // Draw highlights
-        for (BoardPos pos : highlights) {
+        // Draw legalPos
+        for (BoardPos pos : legalPos) {
             gc.setFill(Color.ORANGE);
             gc.fillRect(startX + pos.getX() * unitLength,
                     startY + pos.getY() * unitLength, unitLength, unitLength);

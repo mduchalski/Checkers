@@ -48,6 +48,10 @@ public class BoardPos {
 
         route.add(step);
     }
+
+    public List<BoardPos> getRoute() {
+        return route;
+    }
     
     public int getX() {
         return x;

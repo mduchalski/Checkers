@@ -34,6 +34,10 @@ public class Board {
         else return null;
     }
 
+    public void set(BoardPos pos, Piece piece) {
+        pieces[pos.getX()][pos.getY()] = new Piece(piece);
+    }
+
     public int side() {
         return pieces.length;
     }
