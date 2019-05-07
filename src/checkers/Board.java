@@ -16,12 +16,10 @@ public class Board {
             } */
 
         pieces[6][6].setWhite();
-        pieces[5][5].setBlack();
-        pieces[3][5].setBlack();
-        pieces[3][3].setBlack();
-        pieces[1][3].setBlack();
-        pieces[1][5].setBlack();
-
+        pieces[4][4].setBlack();
+        pieces[2][4].setBlack();
+        pieces[2][6].setBlack();
+        pieces[6][4].setBlack();
     }
 
 

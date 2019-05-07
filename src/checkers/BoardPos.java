@@ -8,6 +8,8 @@ package checkers;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.lang.Math.abs;
+
 /**
  *
  * @author Mateusz
@@ -56,10 +58,20 @@ public class BoardPos {
     }
 
     public List<BoardPos> getRoute() {
+        if (route == null)
+            return new ArrayList<>();
         return route;
     }
 
-    public BoardPos getRouteOrigin() {
+    public void setRoute(List<BoardPos> _route) {
+        route = new ArrayList<>(_route);
+    }
+
+    public boolean isNextTo(BoardPos other) {
+        return abs(x - other.x) == 1 && abs(y - other.y) == 1;
+    }
+
+    public BoardPos getRouteLast() {
         return route.get(route.size() - 1);
     }
 
@@ -83,6 +95,13 @@ public class BoardPos {
         return new BoardPos(x + other.x, y + other.y);
     }
 
+    public BoardPos add(int _x, int _y) {
+        BoardPos retVal = new BoardPos(x + _x, y + _y);
+        if (route != null)
+            retVal.route = new ArrayList<>(route);
+        return retVal;
+    }
+
     public BoardPos avg(BoardPos other) {
         return new BoardPos((x + other.x) / 2, (y + other.y) / 2);
     }
@@ -96,4 +115,6 @@ public class BoardPos {
         BoardPos oo = (BoardPos)o;
         return oo.getX() == x && oo.getY() == y;
     }
+
+
 }

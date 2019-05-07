@@ -5,10 +5,8 @@
  */
 package checkers;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
+
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
@@ -81,13 +79,13 @@ public class BoardLogic {
                     List<BoardPos> _legalPos = highlightStrikes(new BoardPos(i, j));
                     if (!_legalPos.isEmpty() && (lastLongest == null ||
                             _legalPos.get(0).routeLen() > lastLongest.routeLen()))
-                        lastLongest = _legalPos.get(0).getRouteOrigin();
+                        lastLongest = _legalPos.get(0).getRouteLast();
                 }
         return lastLongest;
     }
 
     public void highlightMoves(double mouseX, double mouseY) {
-        activePos = longestAvailableStrike();
+        //activePos = longestAvailableStrike();
         if (activePos == null)
             activePos = decodeMouse(mouseX, mouseY);
         if (activePos == null || board.get(activePos).isEmpty() ||
@@ -96,7 +94,7 @@ public class BoardLogic {
             return;
         }
 
-        legalPos = highlightStrikes(activePos);
+        legalPos = highlightStrikesCrown(activePos);
 
         if (legalPos.isEmpty() && !board.get(activePos).isEmpty()) {
             final int[] shifts = {-1, 1};
@@ -111,53 +109,84 @@ public class BoardLogic {
         for (BoardPos pos : legalPos)
             pos.addToRoute(new BoardPos(activePos));
     }
-    
+
+    private List<BoardPos> filterShorter(List<BoardPos> route) {
+        int maxDepth = route.isEmpty() ? 0 : route.get(route.size() - 1).routeLen();
+        Iterator<BoardPos> it = route.iterator();
+        while (it.hasNext()) {
+            BoardPos pos = it.next();
+            if (pos.routeLen() != maxDepth)
+                it.remove();
+        }
+        return route;
+    }
+
+    public List<BoardPos> highlightStrikesCrown(BoardPos from) {
+        Queue<BoardPos> search = new LinkedList<>();
+        List<BoardPos> result = new ArrayList<>();
+        final int[] direction = {-1, 1};
+
+        search.add(from);
+        while (!search.isEmpty()) {
+            boolean finalPos = true;
+            for (int dirX : direction)
+                for (int dirY : direction) {
+                    BoardPos pos = search.peek().add(dirX, dirY), strike = null;
+                    pos.setRoute(new ArrayList<>(search.peek().getRoute()));
+
+                    while (pos.inBounds(board.side()) &&
+                            (board.get(pos).isEmpty() ^ board.get(from).color()
+                                    != board.get(pos).color())) {
+                        if (board.get(from).color() != board.get(pos).color() &&
+                            !pos.getRoute().contains(pos) ) {
+                            strike = new BoardPos(pos);
+                            finalPos = false;
+                            pos = pos.add(dirX, dirY);
+                            pos.addToRoute(strike);
+                            continue;
+                        }
+                        if (strike != null)
+                            search.add(pos);
+                        pos = pos.add(dirX, dirY);
+                    }
+                }
+            if (finalPos && search.peek().getRouteLast().isNextTo(search.peek()))
+                result.add(search.peek());
+            search.poll();
+        }
+
+        return filterShorter(result);
+    }
+
     public List<BoardPos> highlightStrikes(BoardPos from) {
         Queue<BoardPos> search = new LinkedList<>();
-        List<BoardPos> result = new ArrayList<>(), retVal = new ArrayList<>();
-        search.add(from);
-
+        List<BoardPos> result = new ArrayList<>();
         final int[] offsets = {-2, 2};
+
+        search.add(from);
         while (!search.isEmpty()) {
+            boolean finalPos = true;
             for (int offX : offsets)
                 for (int offY : offsets) {
-                    BoardPos to = new BoardPos(search.peek().getX() + offX, 
+                    BoardPos to = new BoardPos(search.peek().getX() + offX,
                             search.peek().getY() + offY);
-                    
-                    if ( !result.contains(to) && to.inBounds(board.side()) &&
-                            board.get(to).isEmpty() &&
+                    to.setRoute(search.peek().getRoute());
+
+                    if (to.inBounds(board.side()) && board.get(to).isEmpty() &&
                             !board.get(to.avg(search.peek())).isEmpty() &&
                             board.get(from).color() !=
                                     board.get(to.avg(search.peek())).color() &&
-                            !search.contains(to) )
-                        search.add(new BoardPos(to, search.peek().distFromActive() + 1));
-                }
-
-            result.add(new BoardPos(search.poll()));
-        }
-
-        int maxDepth = result.get(result.size() - 1).distFromActive();
-        for (BoardPos end : result) {
-            if (end.distFromActive() == maxDepth) {
-                int i = maxDepth - 1;
-                BoardPos nextStep = new BoardPos(end);
-                for (int j = result.size() - 1; j >= 0; j--)
-                    if (result.get(j).distFromActive() == i &&
-                            abs(result.get(j).getX() - nextStep.getX()) == 2 &&
-                            abs(result.get(j).getY() - nextStep.getY()) == 2) {
-                        end.addToRoute(new BoardPos((result.get(j).getX() + nextStep.getX()) / 2,
-                                (result.get(j).getY() + nextStep.getY()) / 2));
-                        end.addToRoute(new BoardPos(result.get(j)));
-
-                        i--;
-                        nextStep = new BoardPos(result.get(j));
+                            !to.getRoute().contains(to.avg(search.peek()))) {
+                        to.addToRoute(new BoardPos(to.avg(search.peek())));
+                        search.add(to);
+                        finalPos = false;
                     }
-                if (!end.equals(from))
-                    retVal.add(new BoardPos(end));
-            }
+                }
+            if (finalPos) result.add(search.peek());
+            search.poll();
         }
 
-        return retVal;
+        return result;
     }
     
     public void draw(GraphicsContext gc) {
