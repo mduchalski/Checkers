@@ -77,18 +77,6 @@ public class Piece {
         empty = true;
     }
 
-    void setNotEmpty() {
-        empty = false;
-    }
-
-    boolean isBlack() {
-        return !empty && color;
-    }
-    
-    boolean isWhite() {
-        return !empty && !color;
-    }
-
     public boolean isCrown() {
         return crown;
     }

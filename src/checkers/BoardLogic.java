@@ -6,7 +6,6 @@
 package checkers;
 
 import java.util.*;
-
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
@@ -14,11 +13,8 @@ import javafx.scene.paint.Color;
  *
  * @author Mateusz
  */
-
-
 public class BoardLogic {
     private final double pieceMargin, startX, startY, sideLength, unitLength;
-    //private Piece[][] pieces;
     private Board board;
 
     private List<BoardPos> legalPos;
@@ -77,6 +73,16 @@ public class BoardLogic {
             return new BoardPos( (int)((mouseX - startX) / unitLength), 
                     (int)((mouseY - startY) / unitLength ));
         else return null;
+    }
+
+    public boolean gameEnd() {
+        int whiteCnt = 0, blackCnt = 0;
+        for (int i = 0; i < board.side(); i++)
+            for (int j = 0; j < board.side(); j++)
+                if (!board.get(i, j).isEmpty() && board.get(i, j).color())
+                    blackCnt++;
+                else if (!board.get(i, j).isEmpty()) whiteCnt++;
+        return whiteCnt == 0 || blackCnt == 0;
     }
 
     private BoardPos longestAvailableStrike() {
@@ -238,5 +244,9 @@ public class BoardLogic {
             for (int j = 0; j < board.side(); j++)
                 board.get(i, j).draw(gc, startX + i * unitLength,
                         startY + j * unitLength, pieceMargin, unitLength);
+    }
+
+    public String message() {
+        return "Turn: " + (lastColor ? "White" : "Black");
     }
 }

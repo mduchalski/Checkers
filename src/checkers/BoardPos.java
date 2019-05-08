@@ -15,33 +15,19 @@ import static java.lang.Math.abs;
  * @author Mateusz
  */
 public class BoardPos {
-    private int x, y, distFromActive;
+    private int x, y;
     public List<BoardPos> route;
-
-    public BoardPos() {
-        x = 0;
-        y = 0;
-        distFromActive = 0;
-    }
 
     public BoardPos(int _x, int _y) {
         x = _x;
         y = _y;
-        distFromActive = 0;
     }
 
     public BoardPos(BoardPos old) {
         x = old.x;
         y = old.y;
-        distFromActive = old.distFromActive;
         if (old.route != null)
             route = new ArrayList<>(old.route);
-    }
-
-    public BoardPos(BoardPos old, int _distFromActive) {
-        x = old.x;
-        y = old.y;
-        distFromActive = _distFromActive;
     }
 
     public void addToRoute(BoardPos step) {
@@ -86,10 +72,6 @@ public class BoardPos {
     public boolean inBounds(int sideCount) {
         return x >= 0 && y >= 0 && x < sideCount && y < sideCount;
     }
-    
-    public int distFromActive() {
-        return distFromActive;
-    }
 
     public BoardPos add(BoardPos other) {
         return new BoardPos(x + other.x, y + other.y);
@@ -113,8 +95,6 @@ public class BoardPos {
         if (!(o instanceof BoardPos))
             return false;
         BoardPos oo = (BoardPos)o;
-        return oo.getX() == x && oo.getY() == y;
+        return oo.x == x && oo.y == y;
     }
-
-
 }
