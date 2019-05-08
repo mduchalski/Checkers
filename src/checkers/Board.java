@@ -8,20 +8,13 @@ public class Board {
         for (int i = 0; i < pieces.length; i++)
             for (int j = 0; j < pieces[i].length; j++)
                 pieces[i][j] = new Piece();
-        /*
+
         for (int j = 0; j < startCount; j++)
             for (int i = (j % 2 == 0) ? 1 : 0; i < sideCount; i += 2) {
                 pieces[i][j].setBlack();
                 pieces[sideCount - 1 - i][sideCount - 1 - j].setWhite();
-            } */
-
-        pieces[6][6].setWhite();
-        pieces[4][4].setBlack();
-        pieces[2][4].setBlack();
-        pieces[2][6].setBlack();
-        pieces[6][4].setBlack();
+            }
     }
-
 
     public Piece get(int x, int y) {
         return get(new BoardPos(x, y));
@@ -40,5 +33,4 @@ public class Board {
     public int side() {
         return pieces.length;
     }
-
 }

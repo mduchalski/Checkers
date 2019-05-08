@@ -45,6 +45,10 @@ public class Piece {
         empty = false;
         color = false;
     }
+
+    public void setCrown() {
+        crown = true;
+    }
     
     public void draw(GraphicsContext gc, double x, double y, double margin,
             double unitLength) {
@@ -53,8 +57,7 @@ public class Piece {
         
         if (color)
             gc.setFill(Color.BLACK);
-        else 
-            gc.setFill(Color.WHITE);
+        else gc.setFill(Color.WHITE);
                         
         gc.fillOval(x + margin * unitLength, y + margin * unitLength,
                 (1 - 2 * margin) * unitLength, (1 - 2 * margin) * unitLength);
@@ -62,6 +65,12 @@ public class Piece {
         gc.setStroke(Color.BLACK);
         gc.strokeOval(x + margin * unitLength, y + margin * unitLength,
                 (1 - 2 * margin) * unitLength, (1 - 2 * margin) * unitLength);
+
+        if (color)
+            gc.setStroke(Color.WHITE);
+        if (crown)
+            gc.strokeOval(x + 2*margin*unitLength, y + 2*margin*unitLength,
+                    (1 - 4*margin) * unitLength, (1 - 4*margin) * unitLength);
     } 
 
     public void setEmpty() {
@@ -78,5 +87,9 @@ public class Piece {
     
     boolean isWhite() {
         return !empty && !color;
+    }
+
+    public boolean isCrown() {
+        return crown;
     }
 }

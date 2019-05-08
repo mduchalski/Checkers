@@ -10,8 +10,6 @@ import java.util.*;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
-import static java.lang.Math.abs;
-
 /**
  *
  * @author Mateusz
@@ -47,7 +45,17 @@ public class BoardLogic {
     public boolean someActivePos() {
         return activePos != null;
     }
-    
+
+    private void findCrown() {
+        for (int i = 0; i < board.side(); i++) {
+            if (!board.get(i, 0).isEmpty() && !board.get(i, 0).color())
+                board.get(i, 0).setCrown();
+            if (!board.get(i, board.side() - 1).isEmpty() &&
+                    board.get(i, board.side() - 1).color())
+                board.get(i, board.side() - 1).setCrown();
+        }
+    }
+
     public void attemptMove(double mouseX, double mouseY) {
         BoardPos newPos = decodeMouse(mouseX, mouseY);
         
@@ -56,6 +64,7 @@ public class BoardLogic {
             board.set(newPos, board.get(activePos));
             for (BoardPos step : legalPos.get(legalPos.indexOf(newPos)).getRoute())
                 board.get(step).setEmpty();
+            findCrown();
         }
 
         legalPos.clear();
@@ -79,13 +88,14 @@ public class BoardLogic {
                     List<BoardPos> _legalPos = highlightStrikes(new BoardPos(i, j));
                     if (!_legalPos.isEmpty() && (lastLongest == null ||
                             _legalPos.get(0).routeLen() > lastLongest.routeLen()))
-                        lastLongest = _legalPos.get(0).getRouteLast();
+                        lastLongest = new BoardPos(i, j);
                 }
         return lastLongest;
     }
 
     public void highlightMoves(double mouseX, double mouseY) {
-        //activePos = longestAvailableStrike();
+        activePos = longestAvailableStrike();
+
         if (activePos == null)
             activePos = decodeMouse(mouseX, mouseY);
         if (activePos == null || board.get(activePos).isEmpty() ||
@@ -94,7 +104,9 @@ public class BoardLogic {
             return;
         }
 
-        legalPos = highlightStrikesCrown(activePos);
+        if (board.get(activePos).isCrown())
+             legalPos = highlightStrikesCrown(activePos);
+        else legalPos = highlightStrikes(activePos);
 
         if (legalPos.isEmpty() && !board.get(activePos).isEmpty()) {
             final int[] shifts = {-1, 1};
@@ -131,14 +143,19 @@ public class BoardLogic {
             boolean finalPos = true;
             for (int dirX : direction)
                 for (int dirY : direction) {
-                    BoardPos pos = search.peek().add(dirX, dirY), strike = null;
+                    BoardPos pos = search.peek().add(dirX, dirY);
+                    BoardPos strike = null;
                     pos.setRoute(new ArrayList<>(search.peek().getRoute()));
 
                     while (pos.inBounds(board.side()) &&
-                            (board.get(pos).isEmpty() ^ board.get(from).color()
-                                    != board.get(pos).color())) {
-                        if (board.get(from).color() != board.get(pos).color() &&
-                            !pos.getRoute().contains(pos) ) {
+                            (board.get(pos).isEmpty() ||
+                                    (pos.add(dirX, dirY).inBounds(board.side()) &&
+                                            board.get(pos.add(dirX, dirY)).isEmpty() &&
+                                            board.get(from).color() != board.get(pos).color()))) {
+                        if (!board.get(pos).isEmpty() && board.get(from).color()
+                                != board.get(pos).color() && !pos.getRoute().contains(pos) &&
+                                pos.add(dirX, dirY).inBounds(board.side()) &&
+                                board.get(pos.add(dirX, dirY)).isEmpty()) {
                             strike = new BoardPos(pos);
                             finalPos = false;
                             pos = pos.add(dirX, dirY);
@@ -150,7 +167,8 @@ public class BoardLogic {
                         pos = pos.add(dirX, dirY);
                     }
                 }
-            if (finalPos && search.peek().getRouteLast().isNextTo(search.peek()))
+            if (finalPos && !search.peek().equals(from) &&
+                    search.peek().getRouteLast().isNextTo(search.peek()))
                 result.add(search.peek());
             search.poll();
         }
@@ -182,11 +200,12 @@ public class BoardLogic {
                         finalPos = false;
                     }
                 }
-            if (finalPos) result.add(search.peek());
+            if (finalPos && !search.peek().equals(from))
+                result.add(search.peek());
             search.poll();
         }
 
-        return result;
+        return filterShorter(result);
     }
     
     public void draw(GraphicsContext gc) {
