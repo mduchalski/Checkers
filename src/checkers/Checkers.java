@@ -49,7 +49,7 @@ public class Checkers extends Application {
             {
                 gc.clearRect(0, 0, gc.getCanvas().getWidth(),
                         gc.getCanvas().getHeight());
-                if (board.someActivePos())
+                if (board.someLegalPos())
                     board.attemptMove(e.getX(), e.getY());
                 else
                     board.highlightMoves(e.getX(), e.getY());

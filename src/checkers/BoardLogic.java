@@ -38,8 +38,8 @@ public class BoardLogic {
         lastColor = true;
     }
     
-    public boolean someActivePos() {
-        return activePos != null;
+    public boolean someLegalPos() {
+        return !legalPos.isEmpty();
     }
 
     private void findCrown() {
@@ -85,47 +85,60 @@ public class BoardLogic {
         return whiteCnt == 0 || blackCnt == 0;
     }
 
-    private BoardPos longestAvailableStrike() {
-        BoardPos lastLongest = null;
+    private List<BoardPos> longestAvailableStrikes() {
+        List<BoardPos> result = new ArrayList<>();
+        int maxDepth = 0;
         for (int i = 0; i < board.side(); i++)
             for (int j = 0; j < board.side(); j++)
                 if (!board.get(i, j).isEmpty() &&
                         board.get(i, j).color() != lastColor) {
                     List<BoardPos> _legalPos = highlightStrikes(new BoardPos(i, j));
-                    if (!_legalPos.isEmpty() && (lastLongest == null ||
-                            _legalPos.get(0).routeLen() > lastLongest.routeLen()))
-                        lastLongest = new BoardPos(i, j);
+                    if (!_legalPos.isEmpty()) {
+                        if (!result.isEmpty() &&
+                                _legalPos.get(0).routeLen() > maxDepth)
+                            result.clear();
+
+                        result.add(new BoardPos(i, j));
+                        maxDepth = _legalPos.get(0).routeLen();
+                    }
                 }
-        return lastLongest;
+        return result;
+    }
+
+    private List<BoardPos> getMoves(BoardPos from) {
+        List<BoardPos> result;
+
+        if (board.get(from).isCrown())
+            result = highlightStrikesCrown(from);
+        else result = highlightStrikes(from);
+
+        if (result.isEmpty() && !board.get(from).isEmpty()) {
+            final int[] shifts = {-1, 1};
+            for (int shift : shifts) {
+                BoardPos move = from.add(new BoardPos(shift,
+                        board.get(from).color() ? 1 : -1));
+
+                if (board.get(move) != null && board.get(move).isEmpty())
+                    result.add(new BoardPos(move));
+            } }
+
+        for (BoardPos pos : result)
+            pos.addToRoute(new BoardPos(from));
+
+        return result;
     }
 
     public void highlightMoves(double mouseX, double mouseY) {
-        activePos = longestAvailableStrike();
+        List<BoardPos> longest = longestAvailableStrikes();
 
-        if (activePos == null)
-            activePos = decodeMouse(mouseX, mouseY);
-        if (activePos == null || board.get(activePos).isEmpty() ||
-                board.get(activePos).color() == lastColor) {
-            activePos = null;
-            return;
+        if (longest.isEmpty())
+            legalPos = getMoves(decodeMouse(mouseX, mouseY));
+        else for (BoardPos strike : longest)
+            legalPos.addAll(getMoves(strike));
+
+        if (!legalPos.isEmpty()) { // quick fix
+            activePos = legalPos.get(0).getRouteLast();
         }
-
-        if (board.get(activePos).isCrown())
-             legalPos = highlightStrikesCrown(activePos);
-        else legalPos = highlightStrikes(activePos);
-
-        if (legalPos.isEmpty() && !board.get(activePos).isEmpty()) {
-            final int[] shifts = {-1, 1};
-            for (int shift : shifts) {
-                BoardPos move = activePos.add(new BoardPos(shift,
-                        board.get(activePos).color() ? 1 : -1));
-
-                if (board.get(move) != null && board.get(move).isEmpty())
-                    legalPos.add(new BoardPos(move));
-        } }
-
-        for (BoardPos pos : legalPos)
-            pos.addToRoute(new BoardPos(activePos));
     }
 
     private List<BoardPos> filterShorter(List<BoardPos> route) {
