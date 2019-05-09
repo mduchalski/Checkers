@@ -15,10 +15,20 @@ import javafx.scene.text.Font;
 import javafx.stage.Stage;
 
 /**
- *
+ * Main class. This JavaFX application implements modified Polish/International
+ * checkers game between two human players.
  * @author Mateusz
  */
 public class Checkers extends Application {
+    /**
+     * Retrieves and draws game status message.
+     * @see BoardLogic#message()
+     * @param gc a given GraphicsContext object
+     * @param boardLogic a given BoardLogic object
+     * @param x text start position x-coordinate, pixels
+     * @param y text start position y-coordinate, pixels
+     * @param size text size, pixels
+     */
     private void drawMessage(GraphicsContext gc, BoardLogic boardLogic,
                              double x, double y, double size) {
         gc.setFont(new Font("Arial", size));
@@ -26,6 +36,9 @@ public class Checkers extends Application {
         gc.fillText(boardLogic.message(), x, y);
     }
 
+    /**
+     * @param primaryStage JavaFX primary stage
+     */
     @Override
     public void start(Stage primaryStage) {
         primaryStage.setTitle("Checkers");
@@ -56,7 +69,7 @@ public class Checkers extends Application {
                 if (board.someLegalPos())
                     board.attemptMove(board.decodeMouse(e.getX(), e.getY()));
                 else
-                    board.highlightMoves(e.getX(), e.getY());
+                    board.highlightMoves(board.decodeMouse(e.getX(), e.getY()));
                 
                 board.draw(gc);
                 drawMessage(gc, board, 50.0, 40.0, 22.0);

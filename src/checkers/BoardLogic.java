@@ -10,7 +10,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
 /**
- * This class implements basic checkers logic and (some of) graphics.
+ * This class implements basic checkers logic and (some of) its graphics.
  */
 public class BoardLogic {
     // graphics parameters
@@ -19,6 +19,8 @@ public class BoardLogic {
     private List<BoardPos> legalPos; // a list of active (highlighted) legal positions
     boolean lastColor, gameOver;     // internal logic parameters, color true if black
 
+
+    // initialization and reset functions
     /**
      * Initializes a BoardLogic object.
      * @param _startX x-coordinate of the upper-left board corner, pixels
@@ -60,28 +62,26 @@ public class BoardLogic {
         gameOver = false;
     }
 
-    /**
-     * Checks if there are some legal move positions active (i.e. highlighted).
-     * @return true if there are, false otherwise
-     */
-    public boolean someLegalPos() {
-        return !legalPos.isEmpty();
-    }
 
+    // public interface functions
     /**
-     * Checks relevant board positions to see if some pieces can be promoted
-     * to crown, does so if there are.
+     * Highlights all legal positions & routes from the given start position.
+     * @param from start position, a BoardPos object
      */
-    private void findCrown() {
-        // iterate over all x-positions
-        for (int i = 0; i < board.side(); i++) {
-            // only extreme elements are relevant
-            if (!board.get(i, 0).isEmpty() && !board.get(i, 0).color())
-                board.get(i, 0).setCrown();
-            if (!board.get(i, board.side() - 1).isEmpty() &&
-                    board.get(i, board.side() - 1).color())
-                board.get(i, board.side() - 1).setCrown();
-        }
+    public void highlightMoves(BoardPos from) {
+        // force longest strikes
+        List<BoardPos> longest = longestAvailableMoves(2, !lastColor);
+
+        // no strikes available - player chooses some regular move
+        if (longest.isEmpty())
+            if (from.inBounds(board.side()) && !board.get(from).isEmpty() &&
+                    board.get(from).color() != lastColor)
+                legalPos = getMoves(from);
+
+                // some strikes available - player chooses from the longest ones
+            else if (!longest.isEmpty())
+                for (BoardPos strike : longest)
+                    legalPos.addAll(getMoves(strike));
     }
 
     /**
@@ -106,191 +106,23 @@ public class BoardLogic {
     }
 
     /**
-     * Identifies board position corresponding to a given mouse click coordinates.
-     * @param mouseX
-     * @param mouseY
-     * @return board position as BoardPos object if coordinates in range, null otherwise
+     * Draws the board and pieces. Please note that this method doesn't clear
+     * working region.
+     * @param gc desired GraphicsContext object
      */
-    public BoardPos decodeMouse(double mouseX, double mouseY) {
-        if (mouseX > startX && mouseY > startY && mouseX < startX + sideLength &&
-                mouseY < startY + sideLength) // range check
-            return new BoardPos( (int)((mouseX - startX) / unitLength), 
-                    (int)((mouseY - startY) / unitLength ));
-        else return null;
-    }
-
-    /**
-     * Checks if game over condition has occurred after the previous click.
-     * @return true if it has, false otherwise
-     */
-    public boolean isGameOverDelayed() {
-        return gameOver;
-    }
-
-
-    private boolean isGameOver() {
-        gameOver = longestAvailableMoves(1, true).isEmpty() ||
-                longestAvailableMoves(1, false).isEmpty();
-        return gameOver;
-    }
-
-    private List<BoardPos> longestAvailableMoves(int minDepth, boolean color) {
-        List<BoardPos> result = new ArrayList<>();
-        for (int i = 0; i < board.side(); i++)
-            for (int j = 0; j < board.side(); j++)
-                if (!board.get(i, j).isEmpty() &&
-                        board.get(i, j).color() != color) {
-                    List<BoardPos> _legalPos = getMoves(new BoardPos(i, j));
-                    if (!_legalPos.isEmpty()) {
-                        if (_legalPos.get(0).routeLen() > minDepth) {
-                            result.clear();
-                            minDepth = _legalPos.get(0).routeLen();
-                        }
-                        if (_legalPos.get(0).routeLen() == minDepth)
-                            result.add(new BoardPos(i, j));
-                    }
-                }
-        return result;
-    }
-
-    private List<BoardPos> getMoves(BoardPos from) {
-        List<BoardPos> result;
-
-        if (board.get(from).isCrown())
-            result = highlightStrikesCrown(from);
-        else result = highlightStrikes(from);
-
-        if (result.isEmpty() && !board.get(from).isEmpty()) {
-            final int[] shifts = {-1, 1};
-            for (int shift : shifts) {
-                BoardPos move = from.add(new BoardPos(shift,
-                        board.get(from).color() ? 1 : -1));
-
-                if (board.get(move) != null && board.get(move).isEmpty())
-                    result.add(new BoardPos(move));
-            } }
-
-        for (BoardPos pos : result)
-            pos.addToRoute(new BoardPos(from));
-
-        return result;
-    }
-
-    public void highlightMoves(double mouseX, double mouseY) {
-        List<BoardPos> longest = longestAvailableMoves(2, lastColor);
-
-
-        if (longest.isEmpty()) {
-            BoardPos mouse = decodeMouse(mouseX, mouseY);
-            if (mouse.inBounds(board.side()) && !board.get(mouse).isEmpty() &&
-                board.get(mouse).color() != lastColor)
-                legalPos = getMoves(decodeMouse(mouseX, mouseY));
-        }
-        else if (!longest.isEmpty())
-            for (BoardPos strike : longest)
-                legalPos.addAll(getMoves(strike));
-    }
-
-    private List<BoardPos> filterShorter(List<BoardPos> route) {
-        int maxDepth = route.isEmpty() ? 0 : route.get(route.size() - 1).routeLen();
-        Iterator<BoardPos> it = route.iterator();
-        while (it.hasNext()) {
-            BoardPos pos = it.next();
-            if (pos.routeLen() != maxDepth)
-                it.remove();
-        }
-        return route;
-    }
-
-    public List<BoardPos> highlightStrikesCrown(BoardPos from) {
-        Queue<BoardPos> search = new LinkedList<>();
-        List<BoardPos> result = new ArrayList<>();
-        final int[] direction = {-1, 1};
-
-        search.add(from);
-        while (!search.isEmpty()) {
-            boolean finalPos = true;
-            for (int dirX : direction)
-                for (int dirY : direction) {
-                    BoardPos pos = search.peek().add(dirX, dirY);
-                    BoardPos strike = null;
-                    pos.setRoute(new ArrayList<>(search.peek().getRoute()));
-
-                    while (pos.inBounds(board.side()) &&
-                            (board.get(pos).isEmpty() ||
-                                    (pos.add(dirX, dirY).inBounds(board.side()) &&
-                                            board.get(pos.add(dirX, dirY)).isEmpty() &&
-                                            board.get(from).color() != board.get(pos).color()))) {
-                        if (!board.get(pos).isEmpty() && board.get(from).color()
-                                != board.get(pos).color() && !pos.getRoute().contains(pos) &&
-                                pos.add(dirX, dirY).inBounds(board.side()) &&
-                                board.get(pos.add(dirX, dirY)).isEmpty()) {
-                            strike = new BoardPos(pos);
-                            finalPos = false;
-                            pos = pos.add(dirX, dirY);
-                            pos.addToRoute(strike);
-                            continue;
-                        }
-                        if (strike != null)
-                            search.add(pos);
-                        pos = pos.add(dirX, dirY);
-                    }
-                }
-            if (finalPos && !search.peek().equals(from) &&
-                    search.peek().getRouteLast().isNextTo(search.peek()))
-                result.add(search.peek());
-            search.poll();
-        }
-
-        return filterShorter(result);
-    }
-
-    public List<BoardPos> highlightStrikes(BoardPos from) {
-        Queue<BoardPos> search = new LinkedList<>();
-        List<BoardPos> result = new ArrayList<>();
-        final int[] offsets = {-2, 2};
-
-        search.add(from);
-        while (!search.isEmpty()) {
-            boolean finalPos = true;
-            for (int offX : offsets)
-                for (int offY : offsets) {
-                    BoardPos to = new BoardPos(search.peek().getX() + offX,
-                            search.peek().getY() + offY);
-                    to.setRoute(search.peek().getRoute());
-
-                    if (to.inBounds(board.side()) && board.get(to).isEmpty() &&
-                            !board.get(to.avg(search.peek())).isEmpty() &&
-                            board.get(from).color() !=
-                                    board.get(to.avg(search.peek())).color() &&
-                            !to.getRoute().contains(to.avg(search.peek()))) {
-                        to.addToRoute(new BoardPos(to.avg(search.peek())));
-                        search.add(to);
-                        finalPos = false;
-                    }
-                }
-            if (finalPos && !search.peek().equals(from))
-                result.add(search.peek());
-            search.poll();
-        }
-
-        return filterShorter(result);
-    }
-    
     public void draw(GraphicsContext gc) {
-        gc.clearRect(startX, startY, sideLength, sideLength);
-
-        // Draw the base grid
+        // draw the base grid
         gc.setFill(Color.LIGHTGREY);
         for (int i = 0; i < board.side(); i++)
             for (int j = (i % 2 == 0) ? 1 : 0; j < board.side(); j += 2)
-                gc.fillRect(startX + j * unitLength, startY + i * unitLength, 
+                gc.fillRect(startX + j * unitLength, startY + i * unitLength,
                         unitLength, unitLength);
-        
+
+        // draw boundaries
         gc.setStroke(Color.BLACK);
         gc.strokeRect(startX, startY, sideLength, sideLength);
-        
-        // Draw legalPos
+
+        // highlight legal positions
         for (BoardPos pos : legalPos) {
             gc.setFill(Color.ORANGE);
             gc.fillRect(startX + pos.getX() * unitLength,
@@ -301,19 +133,292 @@ public class BoardLogic {
                     gc.fillRect(startX + step.getX() * unitLength,
                             startY + step.getY() * unitLength, unitLength, unitLength);
         }
-        
-        // Draw pieces
+
+        // draw pieces
         for (int i = 0; i < board.side(); i++)
             for (int j = 0; j < board.side(); j++)
                 board.get(i, j).draw(gc, startX + i * unitLength,
                         startY + j * unitLength, pieceMargin, unitLength);
     }
 
+    /**
+     * Generates a appropriate game status message.
+     * @return current message, a String message
+     */
     public String message() {
-        if (!longestAvailableMoves(2, lastColor).isEmpty())
-            return "Strike(s) available";
+        if (!longestAvailableMoves(2, !lastColor).isEmpty())
+            return "Strike available";
         else if (isGameOver())
             return "Game over! Click somewhere to continue";
         else return "Turn: " + (lastColor ? "White" : "Black");
+    }
+
+    /**
+     * Checks if there are some legal move positions active (i.e. highlighted).
+     * @return true if there are, false otherwise
+     */
+    public boolean someLegalPos() {
+        return !legalPos.isEmpty();
+    }
+
+    /**
+     * Checks if game over condition has occurred after the previous click.
+     * @see BoardLogic#isGameOver()
+     * @return true if it has, false otherwise
+     */
+    public boolean isGameOverDelayed() {
+        return gameOver;
+    }
+
+    /**
+     * Identifies board position corresponding to a given mouse click coordinates.
+     * @param mouseX
+     * @param mouseY
+     * @return board position as BoardPos object if coordinates in range, null otherwise
+     */
+    public BoardPos decodeMouse(double mouseX, double mouseY) {
+        if (mouseX > startX && mouseY > startY && mouseX < startX + sideLength &&
+                mouseY < startY + sideLength) // range check
+            return new BoardPos( (int)((mouseX - startX) / unitLength),
+                    (int)((mouseY - startY) / unitLength ));
+        else return null;
+    }
+
+
+    // private game logic functions
+    /**
+     * Returns a list of legal end positions achievable from the given start
+     * position complete with routes.
+     * @param from start position, a BoardPos object
+     * @return a collection (list) of end positions, complete with routes
+     */
+    private List<BoardPos> getMoves(BoardPos from) {
+        List<BoardPos> result;
+
+        // strike check
+        if (board.get(from).isCrown())
+            result = getStrikesCrown(from);
+        else result = getStrikes(from);
+
+        // regular moves
+        if (result.isEmpty() && !board.get(from).isEmpty()) {
+            final int[] shifts = {-1, 1};
+            // add adjacent (forward) empty positions
+            for (int shift : shifts) {
+                BoardPos move = from.add(new BoardPos(shift,
+                        board.get(from).color() ? 1 : -1));
+                if (board.get(move) != null && board.get(move).isEmpty())
+                    result.add(new BoardPos(move));
+            } }
+
+        // complete by adding the start position to every legal route, so that
+        // it will be cleared as well when the player will move
+        for (BoardPos pos : result)
+            pos.addToRoute(new BoardPos(from));
+
+        return result;
+    }
+
+    /**
+     * Returns a list of legal end strike positions achievable from the given
+     * start position complete with routes, assuming piece is not crown.
+     * @param from start position, a BoardPos object
+     * @return a collection (list) of end positions, complete with routes
+     */
+    private List<BoardPos> getStrikes(BoardPos from) {
+        Queue<BoardPos> search = new LinkedList<>(); search.add(from);
+        List<BoardPos> result = new ArrayList<>();
+        final int[] offsets = {-2, 2};
+
+        // below is essentially a level-order tree transverse algorithm
+        while (!search.isEmpty()) {
+            // some new positions found from the current search position?
+            boolean finalPos = true;
+            // go in all 4 directions, to corresponding potential next position
+            for (int offX : offsets)
+                for (int offY : offsets) {
+                    BoardPos to = new BoardPos(search.peek().getX() + offX,
+                            search.peek().getY() + offY);
+                    // copy route up to this point
+                    to.setRoute(search.peek().getRoute());
+
+                    // position between the current search and potential next one
+                    // contains a piece that can be stricken for the first time
+                    // in this route (no infinite loops)
+                    if (to.inBounds(board.side()) && board.get(to).isEmpty() &&
+                            !board.get(to.avg(search.peek())).isEmpty() &&
+                            board.get(from).color() !=
+                                    board.get(to.avg(search.peek())).color() &&
+                            !to.getRoute().contains(to.avg(search.peek()))) {
+                        to.addToRoute(new BoardPos(to.avg(search.peek())));
+                        search.add(to);
+                        finalPos = false;
+                    }
+                }
+
+            // only add positions at the end of the route to result
+            if (finalPos && !search.peek().equals(from))
+                result.add(search.peek());
+
+            // next element search
+            search.poll();
+        }
+
+        // filter strikes shorter than maximum length
+        return filterShorter(result);
+    }
+
+    /**
+     * Returns a list of legal end strike positions achievable from the given
+     * start position complete with routes, assuming piece is crown.
+     * @param from start position, a BoardPos object
+     * @return a collection (list) of end positions, complete with routes
+     */
+    private List<BoardPos> getStrikesCrown(BoardPos from) {
+        Queue<BoardPos> search = new LinkedList<>(); search.add(from);
+        List<BoardPos> result = new ArrayList<>();
+        final int[] direction = {-1, 1};
+
+        // below is essentially a level-order tree transverse algorithm
+        while (!search.isEmpty()) {
+            // some new positions found from the current search position?
+            boolean finalPos = true;
+            // go in all 4 orthogonal directions
+            for (int dirX : direction)
+                for (int dirY : direction) {
+                    // initial next position to check in this direction
+                    BoardPos pos = search.peek().add(dirX, dirY);
+                    // some pieces already stricken in this direction
+                    BoardPos strike = null;
+                    // copy route up to this point
+                    pos.setRoute(new ArrayList<>(search.peek().getRoute()));
+
+                    // this goes through all potential legal positions in this
+                    // direction, before and after first(!) strike
+                    while (pos.inBounds(board.side()) &&
+                            (board.get(pos).isEmpty() ||
+                                    (pos.add(dirX, dirY).inBounds(board.side()) &&
+                                            board.get(pos.add(dirX, dirY)).isEmpty() &&
+                                            board.get(from).color() != board.get(pos).color()))) {
+                        // this position contains a piece that can be stricken
+                        // for the first time in this route (no infinite loops)
+                        if (!board.get(pos).isEmpty() && board.get(from).color()
+                                != board.get(pos).color() && !pos.getRoute().contains(pos) &&
+                                pos.add(dirX, dirY).inBounds(board.side()) &&
+                                board.get(pos.add(dirX, dirY)).isEmpty()) {
+                            strike = new BoardPos(pos);
+                            finalPos = false;
+                            pos = pos.add(dirX, dirY);
+                            // stricken pieces added to route so that they will
+                            // be highlighted & removed later
+                            pos.addToRoute(strike);
+                        }
+                        // add all positions after strike to
+                        if (strike != null && !pos.equals(strike))
+                            search.add(pos);
+
+                        // next position in current direction
+                        pos = pos.add(dirX, dirY);
+                    }
+                }
+
+            // only add positions next to last stricken pieces to result list
+            if (finalPos && !search.peek().equals(from) &&
+                    search.peek().getRouteLast().isNextTo(search.peek()))
+                result.add(search.peek());
+
+            // next element in search
+            search.poll();
+        }
+
+        // filter strikes shorter than maximum length
+        return filterShorter(result);
+    }
+
+    /**
+     * Checks and returns longest moves (longer than specified) available for
+     * pieces of a specified color.
+     * @param minDepth minimum length required, for example for 1 will list all
+     *                 moves, for 2 only strikes
+     * @param color piece color
+     * @return a collection (list) of end positions with routes of route length
+     * equal to the maximum one within given constrains
+     */
+    private List<BoardPos> longestAvailableMoves(int minDepth, boolean color) {
+        List<BoardPos> result = new ArrayList<>();
+
+        for (int i = 0; i < board.side(); i++)
+            for (int j = 0; j < board.side(); j++)
+                if (!board.get(i, j).isEmpty() &&
+                        board.get(i, j).color() == color) {
+                    List<BoardPos> _legalPos = getMoves(new BoardPos(i, j));
+                    // some moves are available from the current position...
+                    if (!_legalPos.isEmpty()) {
+                        // ...with routes longer then  the last longest...
+                        if (_legalPos.get(0).routeLen() > minDepth) {
+                            // contains positions with routes shorter than new
+                            // longest, so clear it
+                            result.clear();
+                            // update last longest route length
+                            minDepth = _legalPos.get(0).routeLen();
+                        }
+                        // ...and equal to the last longest
+                        if (_legalPos.get(0).routeLen() == minDepth)
+                            result.add(new BoardPos(i, j));
+                    }
+                }
+
+        return result;
+    }
+
+    /**
+     * Checks relevant board positions to see if some pieces can be promoted
+     * to crown, does so if there are.
+     */
+    private void findCrown() {
+        // iterate over all x-positions
+        for (int i = 0; i < board.side(); i++) {
+            // only extreme elements are relevant
+            if (!board.get(i, 0).isEmpty() && !board.get(i, 0).color())
+                board.get(i, 0).setCrown();
+            if (!board.get(i, board.side() - 1).isEmpty() &&
+                    board.get(i, board.side() - 1).color())
+                board.get(i, board.side() - 1).setCrown();
+        }
+    }
+
+    /**
+     * Checks if game over condition has occurred, saves status to a internal
+     * variable for further use.
+     * @see BoardLogic#isGameOverDelayed()
+     * @return true if has, false otherwise
+     */
+    private boolean isGameOver() {
+        // either all black or all white pieces don't have any moves left, save
+        // to internal field so that a delayed status is available
+        gameOver = longestAvailableMoves(1, true).isEmpty() ||
+                longestAvailableMoves(1, false).isEmpty();
+        return gameOver;
+    }
+
+    // private helper functions
+    /**
+     * Deletes all end positions with route length less than the longest one
+     * from the input list.
+     * @param route input collection (list) of BoardPos objects
+     * @return output collection (list) of only BoardPos objects with the
+     * longest routes
+     */
+    private List<BoardPos> filterShorter(List<BoardPos> route) {
+        int maxDepth = route.isEmpty() ? 0 : route.get(route.size() - 1).routeLen();
+        Iterator<BoardPos> it = route.iterator();
+
+        while (it.hasNext()) {
+            BoardPos pos = it.next();
+            if (pos.routeLen() != maxDepth)
+                it.remove();
+        }
+
+        return route;
     }
 }
