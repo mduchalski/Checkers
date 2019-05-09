@@ -22,6 +22,7 @@ public class Piece {
         crown = false;
     }
 
+
     public Piece(Piece piece) {
         empty = piece.empty;
         color = piece.color;

@@ -10,40 +10,72 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
 /**
- *
- * @author Mateusz
+ * This class implements basic checkers logic and (some of) graphics.
  */
 public class BoardLogic {
+    // graphics parameters
     private final double pieceMargin, startX, startY, sideLength, unitLength;
-    private Board board;
+    private Board board;             // board configuration
+    private List<BoardPos> legalPos; // a list of active (highlighted) legal positions
+    boolean lastColor, gameOver;     // internal logic parameters, color true if black
 
-    private List<BoardPos> legalPos;
-    BoardPos activePos;
-    boolean lastColor;
-    
+    /**
+     * Initializes a BoardLogic object.
+     * @param _startX x-coordinate of the upper-left board corner, pixels
+     * @param _startY y-coordinate of the upper-left board corner, pixels
+     * @param _sideLength board side length, pixels
+     * @param _pieceMargin margin to leave on each side when drawing a piece,
+     *                     fraction [0, 0.5) of single unit's side length
+     * @param sideCount number of units per side, count
+     * @param startCount number of units initially filled with either player's
+     *                   pieces, count
+     */
     public BoardLogic(double _startX, double _startY, double _sideLength,
                       double _pieceMargin, int sideCount, int startCount) {
+        // simple copying
         startX = _startX;
         startY = _startY;
         sideLength = _sideLength;
         pieceMargin = _pieceMargin;
-        
+        // calculating single unit's side length in pixels for further use
         unitLength = _sideLength / sideCount;
-
+        // board configuration & initial logic initialization
         board = new Board(sideCount, startCount);
-        
         legalPos = new ArrayList<>();
-
-        activePos = null;
         lastColor = true;
+        gameOver = false;
     }
-    
+
+    /**
+     * Resets all game-specific fields, including board configuration,
+     * to their initial values.
+     * @see Board#reset()
+     */
+    public void reset() {
+        // corresponding function called in the Board object to reset piece
+        // positions
+        board.reset();
+        // internal logic reset
+        lastColor = true;
+        gameOver = false;
+    }
+
+    /**
+     * Checks if there are some legal move positions active (i.e. highlighted).
+     * @return true if there are, false otherwise
+     */
     public boolean someLegalPos() {
         return !legalPos.isEmpty();
     }
 
+    /**
+     * Checks relevant board positions to see if some pieces can be promoted
+     * to crown, does so if there are.
+     */
     private void findCrown() {
+        // iterate over all x-positions
         for (int i = 0; i < board.side(); i++) {
+            // only extreme elements are relevant
             if (!board.get(i, 0).isEmpty() && !board.get(i, 0).color())
                 board.get(i, 0).setCrown();
             if (!board.get(i, board.side() - 1).isEmpty() &&
@@ -52,54 +84,70 @@ public class BoardLogic {
         }
     }
 
-    public void attemptMove(double mouseX, double mouseY) {
-        BoardPos newPos = decodeMouse(mouseX, mouseY);
-        
-        if (legalPos.contains(newPos)) {
-            lastColor = board.get(activePos).color();
-            board.set(newPos, board.get(activePos));
-            for (BoardPos step : legalPos.get(legalPos.indexOf(newPos)).getRoute())
+    /**
+     * Moves an active (highlighted) piece corresponding to a given desired end
+     * position to that position, if valid, and sets relevant logic parameters
+     * for the next turn.
+     * @param to desired move end position, a BoardPos object
+     */
+    public void attemptMove(BoardPos to) {
+        if (legalPos.contains(to)) {
+            lastColor = !lastColor; // next turn
+            // move striking piece to the end position
+            board.set(to, board.get(legalPos.get(legalPos.indexOf(to)).getRouteLast()));
+            // clear positions "en route" - pieces to strike and the initial position
+            for (BoardPos step : legalPos.get(legalPos.indexOf(to)).getRoute())
                 board.get(step).setEmpty();
+            // promote qualifying pieces to crown
             findCrown();
         }
 
-        legalPos.clear();
-        activePos = null;
+        legalPos.clear(); // next turn - no highlights
     }
-    
-    private BoardPos decodeMouse(double mouseX, double mouseY) {
+
+    /**
+     * Identifies board position corresponding to a given mouse click coordinates.
+     * @param mouseX
+     * @param mouseY
+     * @return board position as BoardPos object if coordinates in range, null otherwise
+     */
+    public BoardPos decodeMouse(double mouseX, double mouseY) {
         if (mouseX > startX && mouseY > startY && mouseX < startX + sideLength &&
-                mouseY < startY + sideLength)
+                mouseY < startY + sideLength) // range check
             return new BoardPos( (int)((mouseX - startX) / unitLength), 
                     (int)((mouseY - startY) / unitLength ));
         else return null;
     }
 
-    public boolean gameEnd() {
-        int whiteCnt = 0, blackCnt = 0;
-        for (int i = 0; i < board.side(); i++)
-            for (int j = 0; j < board.side(); j++)
-                if (!board.get(i, j).isEmpty() && board.get(i, j).color())
-                    blackCnt++;
-                else if (!board.get(i, j).isEmpty()) whiteCnt++;
-        return whiteCnt == 0 || blackCnt == 0;
+    /**
+     * Checks if game over condition has occurred after the previous click.
+     * @return true if it has, false otherwise
+     */
+    public boolean isGameOverDelayed() {
+        return gameOver;
     }
 
-    private List<BoardPos> longestAvailableStrikes() {
+
+    private boolean isGameOver() {
+        gameOver = longestAvailableMoves(1, true).isEmpty() ||
+                longestAvailableMoves(1, false).isEmpty();
+        return gameOver;
+    }
+
+    private List<BoardPos> longestAvailableMoves(int minDepth, boolean color) {
         List<BoardPos> result = new ArrayList<>();
-        int maxDepth = 0;
         for (int i = 0; i < board.side(); i++)
             for (int j = 0; j < board.side(); j++)
                 if (!board.get(i, j).isEmpty() &&
-                        board.get(i, j).color() != lastColor) {
-                    List<BoardPos> _legalPos = highlightStrikes(new BoardPos(i, j));
+                        board.get(i, j).color() != color) {
+                    List<BoardPos> _legalPos = getMoves(new BoardPos(i, j));
                     if (!_legalPos.isEmpty()) {
-                        if (!result.isEmpty() &&
-                                _legalPos.get(0).routeLen() > maxDepth)
+                        if (_legalPos.get(0).routeLen() > minDepth) {
                             result.clear();
-
-                        result.add(new BoardPos(i, j));
-                        maxDepth = _legalPos.get(0).routeLen();
+                            minDepth = _legalPos.get(0).routeLen();
+                        }
+                        if (_legalPos.get(0).routeLen() == minDepth)
+                            result.add(new BoardPos(i, j));
                     }
                 }
         return result;
@@ -129,16 +177,18 @@ public class BoardLogic {
     }
 
     public void highlightMoves(double mouseX, double mouseY) {
-        List<BoardPos> longest = longestAvailableStrikes();
+        List<BoardPos> longest = longestAvailableMoves(2, lastColor);
 
-        if (longest.isEmpty())
-            legalPos = getMoves(decodeMouse(mouseX, mouseY));
-        else for (BoardPos strike : longest)
-            legalPos.addAll(getMoves(strike));
 
-        if (!legalPos.isEmpty()) { // quick fix
-            activePos = legalPos.get(0).getRouteLast();
+        if (longest.isEmpty()) {
+            BoardPos mouse = decodeMouse(mouseX, mouseY);
+            if (mouse.inBounds(board.side()) && !board.get(mouse).isEmpty() &&
+                board.get(mouse).color() != lastColor)
+                legalPos = getMoves(decodeMouse(mouseX, mouseY));
         }
+        else if (!longest.isEmpty())
+            for (BoardPos strike : longest)
+                legalPos.addAll(getMoves(strike));
     }
 
     private List<BoardPos> filterShorter(List<BoardPos> route) {
@@ -260,6 +310,10 @@ public class BoardLogic {
     }
 
     public String message() {
-        return "Turn: " + (lastColor ? "White" : "Black");
+        if (!longestAvailableMoves(2, lastColor).isEmpty())
+            return "Strike(s) available";
+        else if (isGameOver())
+            return "Game over! Click somewhere to continue";
+        else return "Turn: " + (lastColor ? "White" : "Black");
     }
 }

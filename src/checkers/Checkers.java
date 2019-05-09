@@ -41,16 +41,20 @@ public class Checkers extends Application {
         BoardLogic board = new BoardLogic(50.0, 50.0, 400.0, 0.1, 8, 3);
         board.draw(gc);
         drawMessage(gc, board, 50.0, 40.0, 22.0);
+        boolean endOnClick = false;
 
         primaryScene.setOnMouseClicked(
         new EventHandler<MouseEvent>()
         {
             public void handle(MouseEvent e)
             {
+                if (board.isGameOverDelayed())
+                    board.reset();
+
                 gc.clearRect(0, 0, gc.getCanvas().getWidth(),
                         gc.getCanvas().getHeight());
                 if (board.someLegalPos())
-                    board.attemptMove(e.getX(), e.getY());
+                    board.attemptMove(board.decodeMouse(e.getX(), e.getY()));
                 else
                     board.highlightMoves(e.getX(), e.getY());
                 
