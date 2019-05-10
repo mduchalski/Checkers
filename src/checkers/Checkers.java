@@ -53,6 +53,7 @@ public class Checkers extends Application {
         
         GraphicsContext gc = canvas.getGraphicsContext2D();
         BoardLogic board = new BoardLogic(50.0, 50.0, 400.0, 0.1, 8, 3);
+        AIPlayer aiPlayer = new AIPlayer();
         board.draw(gc);
         drawMessage(gc, "Click C-computer or H-human player",
                 50.0, 40.0, 22.0);
@@ -64,19 +65,20 @@ public class Checkers extends Application {
             {
                 if (!board.isOpponentSet())
                     return;
-
                 if (board.isGameOverDelayed())
                     board.reset();
 
-                gc.clearRect(0, 0, gc.getCanvas().getWidth(),
-                        gc.getCanvas().getHeight());
-                if (board.someLegalPos())
+                if (board.turn() && aiPlayer.attachedBoard() != null)
+                    aiPlayer.runTurn();
+                else if (board.someLegalPos())
                     board.attemptMove(board.decodeMouse(e.getX(), e.getY()));
                 else
                     board.highlightMoves(board.decodeMouse(e.getX(), e.getY()));
-                
-                board.draw(gc);
 
+                // drawing stuff
+                gc.clearRect(0, 0, gc.getCanvas().getWidth(),
+                        gc.getCanvas().getHeight());
+                board.draw(gc);
                 if (board.isOpponentSet())
                     drawMessage(gc, board.message(), 50.0, 40.0, 22.0);
                 else
@@ -89,10 +91,15 @@ public class Checkers extends Application {
         new EventHandler<KeyEvent>() {
             @Override
             public void handle(KeyEvent event) {
-                if (!board.isOpponentSet() && event.getText().equals("h"))
-                    board.setOpponentAi();
-                else if (!board.isOpponentSet() && event.getText().equals("c"))
-                    board.setOpponentHuman();
+                if (!board.isOpponentSet() && event.getText().equals("h")) {
+                    board.setOpponent();
+                    aiPlayer.attach(null);
+                }
+                else if (!board.isOpponentSet() && event.getText().equals("c")) {
+                    board.setOpponent();
+                    aiPlayer.attach(board);
+
+                }
 
                 gc.clearRect(0, 0, gc.getCanvas().getWidth(),
                         gc.getCanvas().getHeight());

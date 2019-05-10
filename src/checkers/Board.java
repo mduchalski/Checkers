@@ -5,7 +5,7 @@ package checkers;
  */
 public class Board {
     private Piece[][] pieces; // data table
-    int startCount;
+    private int startCount, sideCount;
 
 
     // initialization and reset function
@@ -16,9 +16,10 @@ public class Board {
      * @param _startCount number of units initially filled with either player's
      *                    pieces, count
      */
-    public Board(int sideCount, int _startCount) {
+    public Board(int _sideCount, int _startCount) {
         // save startCount for reset
         startCount = _startCount;
+        sideCount = _sideCount;
 
         // initialize all table elements
         pieces = new Piece[sideCount][sideCount];
@@ -32,6 +33,17 @@ public class Board {
                 pieces[i][j].setBlack();
                 pieces[sideCount - 1 - i][sideCount - 1 - j].setWhite();
             }
+    }
+
+    public Board(Board board) {
+        startCount = board.startCount;
+        sideCount = board.sideCount;
+
+        // copy all table elements
+        pieces = new Piece[sideCount][sideCount];
+        for (int i = 0; i < pieces.length; i++)
+            for (int j = 0; j < pieces[i].length; j++)
+                pieces[i][j] = new Piece(board.pieces[i][j]);
     }
 
     /**

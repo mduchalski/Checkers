@@ -18,7 +18,7 @@ public class BoardLogic {
     private Board board;             // board configuration
     private List<BoardPos> legalPos; // a list of active (highlighted) legal positions
     // internal logic parameters, color true if black, type true if human
-    boolean lastColor, gameOver, opponentSet, opponentType;
+    boolean lastColor, gameOver, opponentSet;
 
 
     // initialization and reset functions
@@ -48,6 +48,19 @@ public class BoardLogic {
         lastColor = true;
         gameOver = false;
         opponentSet = false;
+    }
+
+    public BoardLogic(BoardLogic boardLogic) {
+        startX = boardLogic.startX;
+        startY = boardLogic.startY;
+        sideLength = boardLogic.sideLength;
+        pieceMargin = boardLogic.pieceMargin;
+        unitLength = boardLogic.unitLength;
+        board = new Board(boardLogic.board);
+        legalPos = new ArrayList<>(boardLogic.legalPos);
+        lastColor = boardLogic.lastColor;
+        gameOver = boardLogic.gameOver;
+        opponentSet = boardLogic.opponentSet;
     }
 
     /**
@@ -188,14 +201,12 @@ public class BoardLogic {
         return opponentSet;
     }
 
-    public void setOpponentHuman() {
-        opponentSet = true;
-        opponentType = true;
+    public boolean turn() {
+        return !lastColor;
     }
 
-    public void setOpponentAi() {
+    public void setOpponent() {
         opponentSet = true;
-        opponentType = false;
     }
 
     // private game logic functions
@@ -205,7 +216,7 @@ public class BoardLogic {
      * @param from start position, a BoardPos object
      * @return a collection (list) of end positions, complete with routes
      */
-    private List<BoardPos> getMoves(BoardPos from) {
+    public List<BoardPos> getMoves(BoardPos from) {
         List<BoardPos> result;
 
         // strike check
@@ -357,7 +368,7 @@ public class BoardLogic {
      * @return a collection (list) of end positions with routes of route length
      * equal to the maximum one within given constrains
      */
-    private List<BoardPos> longestAvailableMoves(int minDepth, boolean color) {
+    public List<BoardPos> longestAvailableMoves(int minDepth, boolean color) {
         List<BoardPos> result = new ArrayList<>();
 
         for (int i = 0; i < board.side(); i++)
