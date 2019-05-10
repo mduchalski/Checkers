@@ -17,7 +17,8 @@ public class BoardLogic {
     private final double pieceMargin, startX, startY, sideLength, unitLength;
     private Board board;             // board configuration
     private List<BoardPos> legalPos; // a list of active (highlighted) legal positions
-    boolean lastColor, gameOver;     // internal logic parameters, color true if black
+    // internal logic parameters, color true if black, type true if human
+    boolean lastColor, gameOver, opponentSet, opponentType;
 
 
     // initialization and reset functions
@@ -46,6 +47,7 @@ public class BoardLogic {
         legalPos = new ArrayList<>();
         lastColor = true;
         gameOver = false;
+        opponentSet = false;
     }
 
     /**
@@ -60,6 +62,7 @@ public class BoardLogic {
         // internal logic reset
         lastColor = true;
         gameOver = false;
+        opponentSet = false;
     }
 
 
@@ -181,6 +184,19 @@ public class BoardLogic {
         else return null;
     }
 
+    public boolean isOpponentSet() {
+        return opponentSet;
+    }
+
+    public void setOpponentHuman() {
+        opponentSet = true;
+        opponentType = true;
+    }
+
+    public void setOpponentAi() {
+        opponentSet = true;
+        opponentType = false;
+    }
 
     // private game logic functions
     /**

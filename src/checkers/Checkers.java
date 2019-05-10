@@ -10,6 +10,7 @@ import javafx.event.EventHandler;
 import javafx.scene.*;
 import javafx.scene.canvas.*;
 import javafx.scene.canvas.Canvas;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
@@ -21,19 +22,19 @@ import javafx.stage.Stage;
  */
 public class Checkers extends Application {
     /**
-     * Retrieves and draws game status message.
+     * Draws a game status message.
      * @see BoardLogic#message()
      * @param gc a given GraphicsContext object
-     * @param boardLogic a given BoardLogic object
+     * @param str a string
      * @param x text start position x-coordinate, pixels
      * @param y text start position y-coordinate, pixels
      * @param size text size, pixels
      */
-    private void drawMessage(GraphicsContext gc, BoardLogic boardLogic,
+    private void drawMessage(GraphicsContext gc, String str,
                              double x, double y, double size) {
         gc.setFont(new Font("Arial", size));
         gc.setFill(javafx.scene.paint.Color.BLACK);
-        gc.fillText(boardLogic.message(), x, y);
+        gc.fillText(str, x, y);
     }
 
     /**
@@ -53,14 +54,17 @@ public class Checkers extends Application {
         GraphicsContext gc = canvas.getGraphicsContext2D();
         BoardLogic board = new BoardLogic(50.0, 50.0, 400.0, 0.1, 8, 3);
         board.draw(gc);
-        drawMessage(gc, board, 50.0, 40.0, 22.0);
+        drawMessage(gc, "Click C-computer or H-human player",
+                50.0, 40.0, 22.0);
         boolean endOnClick = false;
 
         primaryScene.setOnMouseClicked(
-        new EventHandler<MouseEvent>()
-        {
+        new EventHandler<MouseEvent>() {
             public void handle(MouseEvent e)
             {
+                if (!board.isOpponentSet())
+                    return;
+
                 if (board.isGameOverDelayed())
                     board.reset();
 
@@ -72,7 +76,29 @@ public class Checkers extends Application {
                     board.highlightMoves(board.decodeMouse(e.getX(), e.getY()));
                 
                 board.draw(gc);
-                drawMessage(gc, board, 50.0, 40.0, 22.0);
+
+                if (board.isOpponentSet())
+                    drawMessage(gc, board.message(), 50.0, 40.0, 22.0);
+                else
+                    drawMessage(gc, "Click C-computer or H-human player",
+                            50.0, 40.0, 22.0);
+            }
+        });
+
+        primaryScene.setOnKeyPressed(
+        new EventHandler<KeyEvent>() {
+            @Override
+            public void handle(KeyEvent event) {
+                if (!board.isOpponentSet() && event.getText().equals("h"))
+                    board.setOpponentAi();
+                else if (!board.isOpponentSet() && event.getText().equals("c"))
+                    board.setOpponentHuman();
+
+                gc.clearRect(0, 0, gc.getCanvas().getWidth(),
+                        gc.getCanvas().getHeight());
+                board.draw(gc);
+                if (board.isOpponentSet())
+                    drawMessage(gc, board.message(), 50.0, 40.0, 22.0);
             }
         });
         
