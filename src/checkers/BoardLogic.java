@@ -73,15 +73,12 @@ public class BoardLogic {
         List<BoardPos> longest = longestAvailableMoves(2, !lastColor);
 
         // no strikes available - player chooses some regular move
-        if (longest.isEmpty())
-            if (from.inBounds(board.side()) && !board.get(from).isEmpty() &&
-                    board.get(from).color() != lastColor)
-                legalPos = getMoves(from);
-
-                // some strikes available - player chooses from the longest ones
-            else if (!longest.isEmpty())
-                for (BoardPos strike : longest)
-                    legalPos.addAll(getMoves(strike));
+        if (longest.isEmpty() && from.inBounds(board.side()) &&
+                !board.get(from).isEmpty() && board.get(from).color() != lastColor)
+            legalPos = getMoves(from);
+        // some strikes available - player chooses from the longest ones
+        else for (BoardPos strike : longest)
+            legalPos.addAll(getMoves(strike));
     }
 
     /**
