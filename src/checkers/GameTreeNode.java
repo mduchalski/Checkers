@@ -7,7 +7,6 @@ public class GameTreeNode {
     private List<GameTreeNode> children = new ArrayList<>();
     private GameTreeNode parent = null;
     private BoardLogic data = null;
-    private int alfa, beta = 0;
 
     public GameTreeNode(BoardLogic rootData) {
         data = rootData;

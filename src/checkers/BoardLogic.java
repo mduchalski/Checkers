@@ -64,6 +64,18 @@ public class BoardLogic {
     }
 
     /**
+     * Copies over
+     * @param boardLogic
+     */
+    public void update(BoardLogic boardLogic) {
+        board = new Board(boardLogic.board);
+        legalPos = new ArrayList<>(boardLogic.legalPos);
+        lastColor = boardLogic.lastColor;
+        gameOver = boardLogic.gameOver;
+        opponentSet = boardLogic.opponentSet;
+    }
+
+    /**
      * Resets all game-specific fields, including board configuration,
      * to their initial values.
      * @see Board#reset()
@@ -181,6 +193,10 @@ public class BoardLogic {
      */
     public boolean isGameOverDelayed() {
         return gameOver;
+    }
+
+    public boolean getLastColor() {
+        return lastColor;
     }
 
     /**
@@ -451,4 +467,6 @@ public class BoardLogic {
 
         return route;
     }
+
+
 }

@@ -3,26 +3,30 @@ package checkers;
 import java.util.List;
 
 public class AIPlayer {
-    BoardLogic boardLogic;
+    boolean active;
 
     public AIPlayer() {
-        boardLogic = null;
+        active = false;
     }
 
-    public void attach(BoardLogic _boardLogic) {
-        boardLogic = _boardLogic;
-    }
-
-    public BoardLogic attachedBoard() {
-        return boardLogic;
-    }
-
-    public void runTurn() {
+    public void runTurn(BoardLogic boardLogic) {
         GameTreeNode root = new GameTreeNode(new BoardLogic(boardLogic));
         constructGameTree(root, 3);
         if (!root.getChildren().isEmpty())
-            boardLogic = root.getChildren().get(0).getData();
+            boardLogic.update(root.getChildren().get(0).getData());
         return;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive() {
+        active = true;
+    }
+
+    public void setInactive() {
+        active = false;
     }
 
     private void constructGameTree(GameTreeNode node, int depth) {
@@ -30,7 +34,8 @@ public class AIPlayer {
             return;
 
         // AI always plays as black
-        List<BoardPos> moves = node.getData().longestAvailableMoves(1, true);
+        List<BoardPos> moves = node.getData().longestAvailableMoves(1,
+                !node.getData().getLastColor());
 
         for (BoardPos move : moves) {
             BoardLogic newData = new BoardLogic(node.getData());

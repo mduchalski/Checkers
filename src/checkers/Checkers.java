@@ -67,8 +67,8 @@ public class Checkers extends Application {
                 if (board.isGameOverDelayed())
                     board.reset();
 
-                if (board.turn() && aiPlayer.attachedBoard() != null)
-                    aiPlayer.runTurn();
+                if (board.turn() && aiPlayer.isActive())
+                    aiPlayer.runTurn(board);
                 else if (board.someLegalPos())
                     board.attemptMove(board.decodeMouse(e.getX(), e.getY()));
                 else
@@ -92,11 +92,11 @@ public class Checkers extends Application {
             public void handle(KeyEvent event) {
                 if (!board.isOpponentSet() && event.getText().equals("h")) {
                     board.setOpponent();
-                    aiPlayer.attach(null);
+                    aiPlayer.setInactive();
                 }
                 else if (!board.isOpponentSet() && event.getText().equals("c")) {
                     board.setOpponent();
-                    aiPlayer.attach(board);
+                    aiPlayer.setActive();
                 }
 
                 gc.clearRect(0, 0, gc.getCanvas().getWidth(),
@@ -106,8 +106,7 @@ public class Checkers extends Application {
                     drawMessage(gc, board.message(), 50.0, 40.0, 22.0);
             }
         });
-        
-        
+
         primaryStage.show();
     }
 
