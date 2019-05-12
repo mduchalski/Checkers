@@ -70,6 +70,7 @@ public class Piece {
      */
     public void setWhite() {
         empty = false;
+        crown = false;
         color = false;
     }
 
@@ -79,6 +80,7 @@ public class Piece {
      */
     public void setBlack() {
         empty = false;
+        crown = false;
         color = true;
     }
 

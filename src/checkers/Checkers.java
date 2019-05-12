@@ -53,11 +53,10 @@ public class Checkers extends Application {
         
         GraphicsContext gc = canvas.getGraphicsContext2D();
         BoardLogic board = new BoardLogic(50.0, 50.0, 400.0, 0.1, 8, 3);
-        AIPlayer aiPlayer = new AIPlayer();
+        AIPlayer aiPlayer = new AIPlayer(); // not functional yet!
         board.draw(gc);
-        drawMessage(gc, "Click C-computer or H-human player",
+        drawMessage(gc, "Click C-computer or H-human opponent",
                 50.0, 40.0, 22.0);
-        boolean endOnClick = false;
 
         primaryScene.setOnMouseClicked(
         new EventHandler<MouseEvent>() {
@@ -98,7 +97,6 @@ public class Checkers extends Application {
                 else if (!board.isOpponentSet() && event.getText().equals("c")) {
                     board.setOpponent();
                     aiPlayer.attach(board);
-
                 }
 
                 gc.clearRect(0, 0, gc.getCanvas().getWidth(),

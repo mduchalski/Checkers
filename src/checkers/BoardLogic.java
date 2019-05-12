@@ -225,15 +225,23 @@ public class BoardLogic {
         else result = getStrikes(from);
 
         // regular moves
+        final int[] shifts = {-1, 1};
         if (result.isEmpty() && !board.get(from).isEmpty()) {
-            final int[] shifts = {-1, 1};
-            // add adjacent (forward) empty positions
-            for (int shift : shifts) {
+            if (board.get(from).isCrown())
+                for (int shiftX : shifts)
+                    for (int shiftY : shifts) {
+                        BoardPos to = from.add(shiftX, shiftY);
+                        while (to.inBounds(board.side()) && board.get(to).isEmpty()) {
+                            result.add(to);
+                            to = to.add(shiftX, shiftY);
+                        }
+                    }
+            else for (int shift : shifts) { // add adjacent empty positions
                 BoardPos move = from.add(new BoardPos(shift,
                         board.get(from).color() ? 1 : -1));
                 if (board.get(move) != null && board.get(move).isEmpty())
                     result.add(new BoardPos(move));
-            } }
+        } }
 
         // complete by adding the start position to every legal route, so that
         // it will be cleared as well when the player will move
@@ -346,9 +354,7 @@ public class BoardLogic {
                     }
                 }
 
-            // only add positions next to last stricken pieces to result list
-            if (finalPos && !search.peek().equals(from) &&
-                    search.peek().getRouteLast().isNextTo(search.peek()))
+            if (finalPos && !search.peek().equals(from))
                 result.add(search.peek());
 
             // next element in search
