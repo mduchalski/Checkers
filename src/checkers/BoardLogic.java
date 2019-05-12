@@ -64,8 +64,8 @@ public class BoardLogic {
     }
 
     /**
-     * Copies over
-     * @param boardLogic
+     * Copies over parameters from another BoardLogic object.
+     * @param boardLogic another BoardLogic object
      */
     public void update(BoardLogic boardLogic) {
         board = new Board(boardLogic.board);
@@ -211,18 +211,6 @@ public class BoardLogic {
             return new BoardPos( (int)((mouseX - startX) / unitLength),
                     (int)((mouseY - startY) / unitLength ));
         else return null;
-    }
-
-    public boolean isOpponentSet() {
-        return opponentSet;
-    }
-
-    public boolean turn() {
-        return !lastColor;
-    }
-
-    public void setOpponent() {
-        opponentSet = true;
     }
 
     // private game logic functions
@@ -468,5 +456,20 @@ public class BoardLogic {
         return route;
     }
 
+    // work in progress below
+    public Board getBoard() {
+        return board;
+    }
 
+    public boolean isOpponentSet() {
+        return opponentSet;
+    }
+
+    public boolean turn() {
+        return !lastColor;
+    }
+
+    public void setOpponent() {
+        opponentSet = true;
+    }
 }

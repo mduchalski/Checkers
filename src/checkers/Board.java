@@ -12,7 +12,7 @@ public class Board {
     /**
      * Initializes a Board object. Called when initializing a BoardLogic object.
      * @see BoardLogic#BoardLogic(double, double, double, double, int, int)
-     * @param sideCount number of units per side, count
+     * @param _sideCount number of units per side, count
      * @param _startCount number of units initially filled with either player's
      *                    pieces, count
      */
